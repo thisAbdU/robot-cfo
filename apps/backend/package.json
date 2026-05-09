@@ -40,6 +40,7 @@
     "@virtuals-protocol/game": "^0.1.14",
     "axios": "^1.16.0",
     "ethers": "^6.16.0",
+    "express": "^4.22.1",
     "express-rate-limit": "^8.5.1",
     "openai": "^6.37.0",
     "reflect-metadata": "^0.2.2",
