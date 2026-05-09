@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs & caches
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.turbo
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Misc
+*.tsbuildinfo

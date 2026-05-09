@@ -1,0 +1,16 @@
+{
+  "name": "robot-cfo",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend start:dev",
+    "build": "pnpm --filter @robot-cfo/shared build && pnpm --filter frontend build && pnpm --filter backend build",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
