@@ -65,6 +65,29 @@ export class VirtualsTreasuryAgentService implements OnModuleInit {
       },
     });
 
+    const notifySocialDigest = new GameFunction({
+      name: 'NOTIFY_SOCIAL_DIGEST',
+      description:
+        'Audit trail when a daily Robot CFO summary is published to external social channels.',
+      args: [
+        {
+          name: 'digest_preview',
+          description: 'Short preview of the social post for Virtuals logs.',
+          type: 'string',
+        },
+      ],
+      executable: (args, log) => {
+        const preview = args.digest_preview ?? '';
+        log(`NOTIFY_SOCIAL_DIGEST recorded: ${preview}`);
+        return Promise.resolve(
+          new ExecutableGameFunctionResponse(
+            ExecutableGameFunctionStatus.Done,
+            preview || 'Social digest recorded.',
+          ),
+        );
+      },
+    });
+
     const notifyGovernance = new GameFunction({
       name: 'NOTIFY_GOVERNANCE_SITUATION',
       description:
@@ -93,7 +116,12 @@ export class VirtualsTreasuryAgentService implements OnModuleInit {
       name: 'Robot CFOTreasuryWorker',
       description:
         'Executes Virtuals-action wrappers for Robot CFO treasury recommendations.',
-      functions: [proposeRebalance, proposeYieldMove, notifyGovernance],
+      functions: [
+        proposeRebalance,
+        proposeYieldMove,
+        notifyGovernance,
+        notifySocialDigest,
+      ],
       getEnvironment: () =>
         Promise.resolve({
           framework: '@virtuals-protocol/game',
@@ -132,6 +160,21 @@ export class VirtualsTreasuryAgentService implements OnModuleInit {
 
     const response = await fn.execute(args, (msg) => this.logger.debug(msg));
 
+    return response.feedback;
+  }
+
+  /** Virtuals GAME SDK hook before posting a daily digest to X (audit trail). */
+  async dispatchSocialDigest(digestPreview: string): Promise<string> {
+    const fn = this.worker.functions.find(
+      (f) => f.name === 'NOTIFY_SOCIAL_DIGEST',
+    );
+    if (!fn) {
+      return '';
+    }
+    const args = {
+      digest_preview: { value: digestPreview.slice(0, 4000) },
+    };
+    const response = await fn.execute(args, (msg) => this.logger.debug(msg));
     return response.feedback;
   }
 }

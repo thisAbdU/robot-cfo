@@ -1,6 +1,11 @@
 {
   "name": "robot-cfo",
   "private": true,
+  "pnpm": {
+    "overrides": {
+      "qr": "0.5.5"
+    }
+  },
   "scripts": {
     "dev:frontend": "pnpm --filter frontend dev",
     "dev:backend": "pnpm --filter backend start:dev",

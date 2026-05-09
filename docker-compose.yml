@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: robotcfo
+      POSTGRES_PASSWORD: robotcfo
+      POSTGRES_DB: robotcfo
+    volumes:
+      - robot_cfo_pg:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U robotcfo -d robotcfo"]
+      interval: 5s
+      timeout: 5s
+      retries: 8
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://robotcfo:robotcfo@postgres:5432/robotcfo
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
+      LIFI_API_KEY: ${LIFI_API_KEY:-}
+      LIFI_INTEGRATOR: ${LIFI_INTEGRATOR:-robot-cfo}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001,http://127.0.0.1:3001}
+      TRANSPARENCY_INGEST_SECRET: ${TRANSPARENCY_INGEST_SECRET:-}
+      SOCIAL_POST_SECRET: ${SOCIAL_POST_SECRET:-}
+      TWITTER_API_KEY: ${TWITTER_API_KEY:-}
+      TWITTER_API_SECRET: ${TWITTER_API_SECRET:-}
+      TWITTER_ACCESS_TOKEN: ${TWITTER_ACCESS_TOKEN:-}
+      TWITTER_ACCESS_SECRET: ${TWITTER_ACCESS_SECRET:-}
+      AI_RATE_LIMIT_MAX: ${AI_RATE_LIMIT_MAX:-120}
+      ALLOW_SERVER_SIDE_SAFE_PROPOSAL: ${ALLOW_SERVER_SIDE_SAFE_PROPOSAL:-false}
+      SAFE_PROPOSER_PRIVATE_KEY: ${SAFE_PROPOSER_PRIVATE_KEY:-}
+      SAFE_API_KEY: ${SAFE_API_KEY:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-sf",
+          "http://127.0.0.1:3000/health",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 90s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+    ports:
+      - "3001:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  robot_cfo_pg:

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { Route, RoutesRequest } from '@lifi/types';
+import type { SafeTransactionData } from '@safe-global/types-kit';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { serializeForJson } from '../blockchain/lifi-route.helpers';
 import { PrismaService } from '../prisma/prisma.service';
@@ -86,12 +87,16 @@ export class ExecutionService {
     const simulation = this.blockchain.simulateRoute(route);
     const routeJson = serializeForJson(route);
 
+    const populated = await this.blockchain.populateFirstStepTransaction(route);
+    const populatedJson = serializeForJson(populated);
+
     const mergedData = {
       ...(typeof decision.data === 'object' && decision.data !== null
         ? (decision.data as object)
         : {}),
       execution: params,
       pendingRoute: routeJson,
+      pendingRoutePopulated: populatedJson,
       bridgeTool: simulation.bridgeTool,
     };
 
@@ -109,6 +114,7 @@ export class ExecutionService {
       routeId: route.id,
       simulation,
       route: routeJson,
+      populatedRoute: populatedJson,
     });
   }
 
@@ -125,15 +131,22 @@ export class ExecutionService {
     if (!data || typeof data !== 'object') {
       throw new BadRequestException('Decision has no prepared route data');
     }
-    const pending = (data as Record<string, unknown>).pendingRoute;
-    if (!pending || typeof pending !== 'object') {
+    const obj = data as Record<string, unknown>;
+    const pendingPopulated = obj.pendingRoutePopulated;
+    const pending = obj.pendingRoute;
+
+    let populated: Route;
+    if (pendingPopulated && typeof pendingPopulated === 'object') {
+      populated = pendingPopulated as Route;
+    } else if (pending && typeof pending === 'object') {
+      populated = await this.blockchain.populateFirstStepTransaction(
+        pending as Route,
+      );
+    } else {
       throw new BadRequestException(
         'Run POST /execution/prepare before proposing',
       );
     }
-
-    const route = pending as Route;
-    const populated = await this.blockchain.populateFirstStepTransaction(route);
 
     const { safeTxHash } = await this.safe.proposeSafeTransaction(
       decision.treasury.address,
@@ -144,6 +157,7 @@ export class ExecutionService {
       ...(data as object),
       pendingRoutePopulated: serializeForJson(populated),
       proposedAt: new Date().toISOString(),
+      proposedVia: 'server',
     };
 
     await this.prisma.aIDecision.update({
@@ -159,6 +173,70 @@ export class ExecutionService {
       aiDecisionId: decision.id,
       safeTxHash,
       executionStatus: 'SIGNING',
+    });
+  }
+
+  /**
+   * Accepts a Safe Transaction Service proposal signed by the connected owner/delegate wallet.
+   */
+  async submitWalletProposal(input: {
+    aiDecisionId: string;
+    safeTxHash: string;
+    safeTransactionData: SafeTransactionData;
+    senderAddress: string;
+    senderSignature: string;
+  }) {
+    const decision = await this.prisma.aIDecision.findUnique({
+      where: { id: input.aiDecisionId },
+      include: { treasury: true },
+    });
+    if (!decision) {
+      throw new NotFoundException(`AIDecision not found: ${input.aiDecisionId}`);
+    }
+
+    const data = decision.data;
+    if (!data || typeof data !== 'object') {
+      throw new BadRequestException('Decision has no prepared route data');
+    }
+
+    const pendingPopulated = (data as Record<string, unknown>)
+      .pendingRoutePopulated;
+    if (!pendingPopulated || typeof pendingPopulated !== 'object') {
+      throw new BadRequestException(
+        'Missing pendingRoutePopulated — run POST /execution/prepare first.',
+      );
+    }
+
+    const { safeTxHash } = await this.safe.relayWalletProposal({
+      treasuryAddress: decision.treasury.address,
+      populatedRoute: pendingPopulated as Route,
+      safeTxHash: input.safeTxHash,
+      safeTransactionData: input.safeTransactionData,
+      senderAddress: input.senderAddress,
+      senderSignature: input.senderSignature,
+    });
+
+    const merged = {
+      ...(data as object),
+      pendingRoutePopulated: pendingPopulated,
+      proposedAt: new Date().toISOString(),
+      proposedVia: 'wallet',
+    };
+
+    await this.prisma.aIDecision.update({
+      where: { id: decision.id },
+      data: {
+        safeTxHash,
+        executionStatus: 'SIGNING',
+        data: JSON.parse(JSON.stringify(merged)) as Prisma.InputJsonValue,
+      },
+    });
+
+    return serializeForJson({
+      aiDecisionId: decision.id,
+      safeTxHash,
+      executionStatus: 'SIGNING',
+      proposedVia: 'wallet',
     });
   }
 

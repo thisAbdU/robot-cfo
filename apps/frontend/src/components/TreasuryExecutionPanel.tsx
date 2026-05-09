@@ -1,8 +1,15 @@
 "use client";
 
+import type { Route } from "@lifi/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { getWalletClient } from "wagmi/actions";
 import { getPublicApiBaseUrl } from "@/lib/api";
+import { defaultHttpRpc } from "@/lib/chain-rpc";
+import { buildSignedSafeProposal } from "@/lib/safe-wallet-proposal";
+import { walletClientToSigner } from "@/lib/wallet-ethers";
+import { wagmiConfig } from "@/wagmi";
 
 type TreasuryRow = {
   id: string;
@@ -30,6 +37,14 @@ type ExecutionBody = {
   toTokenAddress: string;
   fromAmount: string;
   slippage?: number;
+};
+
+type PrepareResponse = {
+  aiDecisionId?: string;
+  routeId?: string;
+  populatedRoute?: Route;
+  route?: unknown;
+  simulation?: unknown;
 };
 
 async function fetchTreasuries(): Promise<TreasuryRow[]> {
@@ -68,6 +83,36 @@ async function postPrepare(body: {
         ? parsed.message
         : text || `Prepare ${res.status}`,
     );
+  }
+  return parsed as PrepareResponse;
+}
+
+async function postSubmitWalletProposal(body: {
+  aiDecisionId: string;
+  safeTxHash: string;
+  safeTransactionData: unknown;
+  senderAddress: string;
+  senderSignature: string;
+}) {
+  const base = getPublicApiBaseUrl();
+  const res = await fetch(`${base}/execution/submit-wallet-proposal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+    body: JSON.stringify(body, (_, v) =>
+      typeof v === "bigint" ? v.toString() : v,
+    ),
+  });
+  const text = await res.text();
+  const parsed = text ? JSON.parse(text) : null;
+  if (!res.ok) {
+    const msg =
+      typeof parsed?.message === "string"
+        ? parsed.message
+        : Array.isArray(parsed?.message)
+          ? parsed.message.map((m: { message?: string }) => m.message).join("; ")
+          : text || `Wallet propose ${res.status}`;
+    throw new Error(msg);
   }
   return parsed;
 }
@@ -125,11 +170,14 @@ const DEFAULT_EXECUTION: ExecutionBody = {
 export function TreasuryExecutionPanel() {
   const queryClient = useQueryClient();
   const baseUrl = useMemo(() => getPublicApiBaseUrl(), []);
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync, isPending: isSwitchingChain } = useSwitchChain();
   const [treasuryId, setTreasuryId] = useState("");
   const [decisionId, setDecisionId] = useState("");
   const [exec, setExec] = useState<ExecutionBody>(DEFAULT_EXECUTION);
   const [bridgeTxHash, setBridgeTxHash] = useState("");
-  const [lastPrepare, setLastPrepare] = useState<unknown>(null);
+  const [lastPrepare, setLastPrepare] = useState<PrepareResponse | null>(null);
   const [lastPropose, setLastPropose] = useState<unknown>(null);
   const [lastRegister, setLastRegister] = useState<unknown>(null);
 
@@ -140,6 +188,7 @@ export function TreasuryExecutionPanel() {
 
   const rows = treasuriesQuery.data ?? [];
   const effectiveTreasuryId = treasuryId || rows[0]?.id || "";
+  const selectedTreasury = rows.find((t) => t.id === effectiveTreasuryId);
 
   const decisionsQuery = useQuery({
     queryKey: ["ai-decisions", effectiveTreasuryId],
@@ -163,6 +212,64 @@ export function TreasuryExecutionPanel() {
 
   const proposeMut = useMutation({
     mutationFn: postPropose,
+    onSuccess: (data) => {
+      setLastPropose(data);
+      queryClient.invalidateQueries({
+        queryKey: ["ai-decisions", effectiveTreasuryId],
+      });
+    },
+  });
+
+  const proposeWalletMut = useMutation({
+    mutationFn: async () => {
+      if (!effectiveDecisionId) {
+        throw new Error("Select an AI decision.");
+      }
+      if (!selectedTreasury) {
+        throw new Error("Select a treasury.");
+      }
+      const populatedRoute = lastPrepare?.populatedRoute;
+      if (!populatedRoute) {
+        throw new Error('Run "Prepare route" first — populated LI.FI calldata is required.');
+      }
+      if (!isConnected) {
+        throw new Error("Connect a wallet in the header (Safe owner or proposer).");
+      }
+
+      const routeChainId = populatedRoute.fromChainId;
+      if (chainId !== routeChainId) {
+        if (!switchChainAsync) {
+          throw new Error(
+            `Switch your wallet to chain id ${routeChainId} (route source chain).`,
+          );
+        }
+        await switchChainAsync({ chainId: routeChainId });
+      }
+
+      const wc = await getWalletClient(wagmiConfig, {
+        chainId: routeChainId,
+      });
+      if (!wc) {
+        throw new Error("Wallet client unavailable after network switch.");
+      }
+
+      const signer = await walletClientToSigner(wc);
+      const rpcUrl = defaultHttpRpc(routeChainId);
+      const proposal = await buildSignedSafeProposal(
+        signer,
+        selectedTreasury.address,
+        populatedRoute,
+        rpcUrl,
+      );
+
+      return postSubmitWalletProposal({
+        aiDecisionId: effectiveDecisionId,
+        safeTxHash: proposal.safeTxHash,
+        safeTransactionData: proposal.safeTransactionData,
+        senderAddress: proposal.senderAddress,
+        senderSignature: proposal.senderSignature,
+      });
+    },
     onSuccess: (data) => {
       setLastPropose(data);
       queryClient.invalidateQueries({
@@ -199,9 +306,10 @@ export function TreasuryExecutionPanel() {
           Execution layer
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
-          Prepare a LI.FI route + simulation, propose the first step to your Safe
-          multisig queue, then register the source-chain tx hash for bridge
-          tracking. API:{" "}
+          Prepare a LI.FI route + simulation, then queue the first step on the Safe
+          Transaction Service — preferably by signing with your connected wallet
+          (non-custodial). Optionally use a server proposer key if enabled on the
+          API. Register the source-chain tx hash for bridge tracking. API:{" "}
           <span className="mono-data text-[var(--terminal-accent)]">{baseUrl}</span>
         </p>
       </div>
@@ -374,6 +482,23 @@ export function TreasuryExecutionPanel() {
           type="button"
           disabled={
             !effectiveDecisionId ||
+            proposeWalletMut.isPending ||
+            isSwitchingChain ||
+            !selectedDecision?.lifiRouteId ||
+            !lastPrepare?.populatedRoute
+          }
+          onClick={() => proposeWalletMut.mutate()}
+          className="mono-data rounded-lg border border-[var(--terminal-accent)] px-4 py-2 text-sm font-medium text-[var(--terminal-accent)] disabled:opacity-40"
+          title="Sign with connected wallet and relay to Safe Transaction Service"
+        >
+          {proposeWalletMut.isPending || isSwitchingChain
+            ? "Wallet signing…"
+            : "2. Queue on Safe (wallet)"}
+        </button>
+        <button
+          type="button"
+          disabled={
+            !effectiveDecisionId ||
             proposeMut.isPending ||
             !selectedDecision?.lifiRouteId
           }
@@ -381,10 +506,17 @@ export function TreasuryExecutionPanel() {
             effectiveDecisionId && proposeMut.mutate(effectiveDecisionId)
           }
           className="mono-data rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-200 disabled:opacity-40"
+          title="Requires ALLOW_SERVER_SIDE_SAFE_PROPOSAL and SAFE_PROPOSER_PRIVATE_KEY on API"
         >
-          {proposeMut.isPending ? "Proposing…" : "2. Propose Safe tx"}
+          {proposeMut.isPending ? "Proposing…" : "3. Queue on Safe (server key)"}
         </button>
       </div>
+
+      {!isConnected ? (
+        <p className="mono-data mt-3 text-xs text-zinc-500">
+          Connect a wallet to use the non-custodial Safe queue flow.
+        </p>
+      ) : null}
 
       <div className="mt-6 rounded-xl border border-[var(--terminal-border)] bg-black/25 p-4">
         <p className="mono-data text-[11px] uppercase tracking-[0.2em] text-zinc-500">
@@ -444,6 +576,13 @@ export function TreasuryExecutionPanel() {
           {proposeMut.error instanceof Error
             ? proposeMut.error.message
             : "Propose failed"}
+        </p>
+      ) : null}
+      {proposeWalletMut.isError ? (
+        <p className="mt-4 text-sm text-red-300">
+          {proposeWalletMut.error instanceof Error
+            ? proposeWalletMut.error.message
+            : "Wallet propose failed"}
         </p>
       ) : null}
       {registerMut.isError ? (

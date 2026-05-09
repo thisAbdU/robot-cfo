@@ -77,6 +77,17 @@ model TokenBalance {
   @@index([treasuryId])
 }
 
+/** Optional automation / operator lines merged into the public transparency feed (sorted with {@link AIDecision}). */
+model TransparencyFeedLine {
+  id        String   @id @default(cuid())
+  source    String   @default("automation")
+  message   String   @db.Text
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model GovernanceProposal {
   id         String   @id
   snapshotId String

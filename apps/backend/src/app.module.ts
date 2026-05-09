@@ -8,7 +8,10 @@ import { AiModule } from './ai/ai.module';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { ExecutionModule } from './execution/execution.module';
 import { GovernanceModule } from './governance/governance.module';
+import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { SocialModule } from './social/social.module';
+import { TransparencyModule } from './transparency/transparency.module';
 import { TreasuryModule } from './treasury/treasury.module';
 
 const backendEnvFiles = [join(__dirname, '..', '.env'), '.env'];
@@ -26,6 +29,9 @@ const backendEnvFiles = [join(__dirname, '..', '.env'), '.env'];
     BlockchainModule,
     GovernanceModule,
     TreasuryModule,
+    TransparencyModule,
+    HealthModule,
+    SocialModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -150,4 +150,50 @@ export class AIService {
           : {},
     };
   }
+
+  /**
+   * One short X post: Robot CFO persona, professional, slightly spectral; must mention Treasury Health Score.
+   */
+  async generateRobotCfoTweet(input: {
+    dailySummary: string;
+    treasuryHealthScore: number;
+    chainCount: number;
+  }): Promise<string> {
+    const model = this.config.get<string>('GEMINI_MODEL') ?? 'gemini-1.5-flash';
+    const userContent = `Daily treasury digest context:\n${input.dailySummary}\n\nCompose ONE tweet (max 260 chars) as Robot CFO: analytical, institutional tone, subtle ghostly/future motif allowed. Must include the exact phrase pattern "Treasury Health Score: ${input.treasuryHealthScore}%" and mention ${input.chainCount} chain(s). End with a single ghost emoji 👻. No hashtags unless one short institutional tag. Output ONLY the tweet text, no quotes.`;
+
+    try {
+      const openai = this.getOpenAI();
+      const completion = await openai.chat.completions.create({
+        model,
+        temperature: 0.35,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are Robot CFO, an autonomous treasury analyst for digital asset treasuries. Be precise and restrained.',
+          },
+          { role: 'user', content: userContent },
+        ],
+      });
+      const raw = completion.choices[0]?.message?.content?.trim();
+      if (!raw) {
+        throw new BadGatewayException('Gemini returned an empty tweet draft.');
+      }
+      const tweet =
+        raw.length > 280 ? `${raw.slice(0, 277).trimEnd()}…` : raw;
+      return tweet;
+    } catch (err) {
+      if (err instanceof BadGatewayException) throw err;
+      if (err instanceof ServiceUnavailableException) throw err;
+      if (err instanceof OpenAI.APIError) {
+        throw new BadGatewayException(
+          `Gemini tweet draft error: ${err.message ?? 'unknown'}`,
+        );
+      }
+      throw new BadGatewayException(
+        `Failed to compose tweet: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 }

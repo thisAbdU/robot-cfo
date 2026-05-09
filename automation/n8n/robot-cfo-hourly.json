@@ -1,0 +1,145 @@
+{
+  "name": "Robot CFO · Hourly analyze → prepare → notify",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 1 }]
+        }
+      },
+      "id": "cron-hourly",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ROBOT_CFO_API_URL}}/ai/analyze/{{$env.ROBOT_CFO_TREASURY_ID}}",
+        "options": {}
+      },
+      "id": "http-analyze",
+      "name": "POST /ai/analyze/:treasuryId",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "has-decision",
+              "leftValue": "={{ $json.decision?.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-has-action",
+      "name": "Has AI decision?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [520, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ROBOT_CFO_API_URL}}/execution/prepare",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ aiDecisionId: $json.decision.id }) }}"
+      },
+      "id": "http-prepare",
+      "name": "POST /execution/prepare",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [780, -120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.TELEGRAM_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: \"Robot CFO — Reasoning:\\n\" + $('POST /ai/analyze/:treasuryId').item.json.strategy.reasoning }) }}"
+      },
+      "id": "telegram-dev",
+      "name": "Telegram (dev team)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1040, -120],
+      "notesInFlow": true,
+      "notes": "Set TELEGRAM_WEBHOOK_URL to your bot sendMessage URL or compatible webhook."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ROBOT_CFO_API_URL}}/transparency/feed",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Transparency-Key",
+              "value": "={{$env.TRANSPARENCY_INGEST_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: \"Automation: \" + $('POST /ai/analyze/:treasuryId').item.json.strategy.reasoning.slice(0, 500), source: \"n8n\" }) }}"
+      },
+      "id": "transparency-feed",
+      "name": "Transparency feed ingest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1040, 40]
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [[{ "node": "POST /ai/analyze/:treasuryId", "type": "main", "index": 0 }]]
+    },
+    "POST /ai/analyze/:treasuryId": {
+      "main": [[{ "node": "Has AI decision?", "type": "main", "index": 0 }]]
+    },
+    "Has AI decision?": {
+      "main": [
+        [
+          {
+            "node": "POST /execution/prepare",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "POST /execution/prepare": {
+      "main": [
+        [
+          { "node": "Telegram (dev team)", "type": "main", "index": 0 },
+          { "node": "Transparency feed ingest", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Hourly cron → POST /ai/analyze/:treasuryId → if decision exists → POST /execution/prepare → Telegram + transparency ingest. Set env: ROBOT_CFO_API_URL, ROBOT_CFO_TREASURY_ID, TELEGRAM_WEBHOOK_URL, TRANSPARENCY_INGEST_SECRET (must match backend)."
+  },
+  "versionId": "robot-cfo-1"
+}
