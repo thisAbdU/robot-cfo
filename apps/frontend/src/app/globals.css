@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --terminal-bg: #050507;
+  --terminal-panel: #0c0c0f;
+  --terminal-border: rgba(255, 255, 255, 0.08);
+  --terminal-fg: #e4e4e7;
+  --terminal-accent: #00ff94;
+  --terminal-accent-muted: rgba(0, 255, 148, 0.15);
+  --foreground: var(--terminal-fg);
+  --background: var(--terminal-bg);
 }
 
 @theme inline {
@@ -12,15 +19,63 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  background-color: var(--terminal-bg);
+  color: var(--terminal-fg);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Safe / Zodiac–inspired terminal grid (dark) */
+.terminal-grid {
+  background-color: var(--terminal-bg);
+  background-image:
+    linear-gradient(
+      rgba(0, 255, 148, 0.035) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(0, 255, 148, 0.035) 1px,
+      transparent 1px
+    );
+  background-size: 48px 48px;
+  background-position: center top;
+}
+
+.terminal-grid-glow {
+  background-image:
+    radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(0, 255, 148, 0.14),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 100% 0%,
+      rgba(56, 189, 248, 0.06),
+      transparent 50%
+    );
+}
+
+.terminal-scanlines {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  opacity: 0.04;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.35) 2px,
+    rgba(0, 0, 0, 0.35) 4px
+  );
+}
+
+.mono-data {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
 }

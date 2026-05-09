@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Treasury {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  chainId   Int
+  orgId     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  balances TokenBalance[]
+}
+
+model TokenBalance {
+  id          String   @id @default(cuid())
+  treasuryId  String
+  treasury    Treasury @relation(fields: [treasuryId], references: [id], onDelete: Cascade)
+  chainId     BigInt
+  address     String
+  symbol      String
+  decimals    Int
+  balance     BigInt
+  balanceUSD  Decimal  @db.Decimal(38, 18)
+  priceUSD    Decimal  @db.Decimal(38, 18)
+  lastUpdated DateTime @default(now())
+
+  @@unique([treasuryId, chainId, address])
+  @@index([treasuryId])
+}
+
+model GovernanceProposal {
+  id         String   @id
+  snapshotId String
+  title      String
+  body       String   @db.Text
+  status     String
+  space      String
+  author     String   @default("")
+  choices    Json
+  scores     Json
+  start      DateTime
+  end        DateTime
+  votes      Json
+  aiSummary  String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([space])
+  @@index([status])
+}

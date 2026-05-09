@@ -7,7 +7,7 @@ Monorepo for the Robot-CFO product: a Next.js frontend, a NestJS API, and shared
 | Path | Purpose |
 |------|---------|
 | `apps/frontend` | Next.js 15 (App Router, Tailwind, ESLint, `src/`). Dev: `pnpm dev:frontend`. |
-| `apps/backend` | NestJS 11 (`AppModule`, `AppController`, `AppService`). Dev: `pnpm dev:backend`. |
+| `apps/backend` | NestJS 11 API: Prisma + Postgres, LI.FI treasury balances (15m cron), Snapshot governance sync. Dev: `pnpm dev:backend`. |
 | `packages/shared` | Shared types and interfaces (`@robot-cfo/shared`), e.g. DAO and treasury shapes. |
 
 ## Prerequisites
@@ -47,3 +47,7 @@ The Next.js app lists `@robot-cfo/shared` in `transpilePackages` so workspace so
 ## Environment
 
 Copy `.env.example` files in each app when you add them; root `.gitignore` excludes `.env` and `.env.*`.
+
+**Backend (`apps/backend/.env`):** `DATABASE_URL` (Postgres), optional `LIFI_INTEGRATOR` / `LIFI_API_KEY`, and `SNAPSHOT_SPACE_IDS` (comma-separated Snapshot spaces). Run migrations from `apps/backend` with `pnpm prisma:migrate`.
+
+Useful HTTP routes after `pnpm dev:backend`: `POST /blockchain/sync-balances`, `POST /governance/sync-active`, `GET /governance/proposals`, `GET /governance/:spaceId` (sync + list for one DAO, e.g. `balancer.eth`).

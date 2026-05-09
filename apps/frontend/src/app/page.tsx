@@ -1,102 +1,103 @@
-import Image from "next/image";
+import { Header } from "@/components/Header";
+import { FeatureCard } from "@/components/FeatureCard";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="relative min-h-dvh overflow-hidden terminal-grid">
+      <div
+        className="pointer-events-none absolute inset-0 terminal-grid-glow"
+        aria-hidden
+      />
+      <div className="terminal-scanlines" aria-hidden />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+      <Header />
+
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-12 sm:px-6 sm:pt-16">
+        <section className="text-center sm:text-left">
+          <p className="mono-data text-[11px] font-medium uppercase tracking-[0.35em] text-[var(--terminal-accent)]">
+            treasury · governance · execution
+          </p>
+          <h1 className="mt-4 max-w-3xl font-mono text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl md:text-5xl">
+            Multisig-grade clarity for your{" "}
+            <span className="text-[var(--terminal-accent)]">onchain</span>{" "}
+            treasury
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-400 sm:mx-0">
+            Robot CFO connects your wallet and prepares the surface for
+            balances, Snapshot governance, and CFO-grade reporting.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:justify-start">
+            <span className="mono-data rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-panel)] px-4 py-2 text-xs text-zinc-400">
+              Chains:{" "}
+              <span className="text-[var(--terminal-accent)]">
+                Ethereum · Base · Arbitrum
+              </span>
+            </span>
+            <span className="mono-data rounded-lg border border-dashed border-zinc-700 px-4 py-2 text-xs text-zinc-500">
+              Solana: use a dedicated Solana adapter (not wagmi)
+            </span>
+          </div>
+        </section>
+
+        <section className="mt-20 grid gap-6 md:grid-cols-2">
+          <FeatureCard title="Treasury visibility" className="md:col-span-2">
+            <p>
+              Aggregate positions across EVM networks with terminal-precise
+              typography — built for operators who live in Safe and wallet
+              dashboards daily.
+            </p>
+          </FeatureCard>
+          <FeatureCard title="Wallet connection">
+            <p>
+              RainbowKit + wagmi + viem power a polished connect flow with WalletConnect
+              support. Set{" "}
+              <code className="mono-data rounded bg-black/40 px-1.5 py-0.5 text-[var(--terminal-accent)]">
+                NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+              </code>{" "}
+              from{" "}
+              <a
+                href="https://cloud.walletconnect.com/"
+                className="text-zinc-200 underline underline-offset-2 hover:text-[var(--terminal-accent)]"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                WalletConnect Cloud
+              </a>
+              .
+            </p>
+          </FeatureCard>
+          <FeatureCard title="Governance hooks">
+            <p>
+              Your Nest API already syncs Snapshot proposals — this shell is
+              ready to surface votes, scores, and deadlines as you wire data
+              through.
+            </p>
+          </FeatureCard>
+        </section>
+
+        <section className="mt-16 rounded-2xl border border-[var(--terminal-border)] bg-[color-mix(in_oklab,var(--terminal-panel)_100%,black)] p-8">
+          <h2 className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-[var(--terminal-accent)]">
+            Session status
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">
+            Connect a wallet using the control in the header. Session keys stay
+            in your browser — Robot CFO never custody funds on this page.
+          </p>
+          <pre className="mono-data mt-6 overflow-x-auto rounded-xl border border-[var(--terminal-border)] bg-black/50 p-4 text-left text-xs leading-relaxed text-zinc-400">
+            <span className="text-[var(--terminal-accent)]">robot-cfo</span>
+            <span className="text-zinc-600"> ~ % </span>
+            <span className="text-zinc-300">
+              awaiting signer connection…
+            </span>
+          </pre>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      <footer className="relative z-10 border-t border-[var(--terminal-border)] py-8 text-center">
+        <p className="mono-data text-[11px] uppercase tracking-[0.25em] text-zinc-600">
+          Robot CFO · experimental interface · {new Date().getFullYear()}
+        </p>
       </footer>
     </div>
   );
