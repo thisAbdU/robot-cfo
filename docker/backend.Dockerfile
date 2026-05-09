@@ -32,4 +32,4 @@ COPY --from=build /repo/apps/backend/node_modules ./apps/backend/node_modules
 WORKDIR /repo/apps/backend
 EXPOSE 3000
 
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/src/main.js"]

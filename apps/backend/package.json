@@ -15,7 +15,8 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main.js",
+    "vercel-build": "prisma generate && nest build",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -43,6 +44,7 @@
     "openai": "^6.37.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "serverless-http": "^3.2.0",
     "twitter-api-v2": "^1.29.0"
   },
   "devDependencies": {
@@ -55,6 +57,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
+    "@vercel/node": "^5.7.16",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
