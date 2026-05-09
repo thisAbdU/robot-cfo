@@ -38,9 +38,15 @@ importers:
       '@robot-cfo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@virtuals-protocol/game':
+        specifier: ^0.1.14
+        version: 0.1.14
       axios:
         specifier: ^1.16.0
         version: 1.16.0
+      openai:
+        specifier: ^6.37.0
+        version: 6.37.0(ws@7.5.10(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@4.4.3)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -2236,6 +2242,9 @@ packages:
     resolution: {integrity: sha512-HOYidLONR/SeGk8NBAeI64I4gYdsMX9vJmniL13ZcLVwawyK0s2GUENEAcGA+GYLIoeyQB61UqmhqPodJry7zA==}
     peerDependencies:
       '@vanilla-extract/css': ^1.0.0
+
+  '@virtuals-protocol/game@0.1.14':
+    resolution: {integrity: sha512-Y6QPVEcUFrk6aYijmV4pBsWhb4Xag0cAnQ+7fcz0qBIO1UNqZdFpVA0ezfEnjNcZuM5ypqc9dGPHbkNJ7qhhVA==}
 
   '@wagmi/connectors@6.2.0':
     resolution: {integrity: sha512-2NfkbqhNWdjfibb4abRMrn7u6rPjEGolMfApXss6HCDVt9AW2oVC6k8Q5FouzpJezElxLJSagWz9FW1zaRlanA==}
@@ -4717,6 +4726,18 @@ packages:
   onetime@5.1.2:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
+
+  openai@6.37.0:
+    resolution: {integrity: sha512-0H5dEGFmmLv6KSd0W1w2nyL8WsLkX6yoLeQpU+dZAOuGcany5qkYQMmj35ZrKgb6yiyYqpUzFOpR8mZQkgqeEQ==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
 
   openapi-fetch@0.13.8:
     resolution: {integrity: sha512-yJ4QKRyNxE44baQ9mY5+r/kAzZ8yXMemtNAOFwOzRXJscdjSxxzWSNlyBAr+o5JjkUw9Lc3W7OIoca0cY3PYnQ==}
@@ -8962,6 +8983,13 @@ snapshots:
     dependencies:
       '@vanilla-extract/css': 1.20.1
 
+  '@virtuals-protocol/game@0.1.14':
+    dependencies:
+      axios: 1.16.0
+      dotenv: 16.6.1
+    transitivePeerDependencies:
+      - debug
+
   '@wagmi/connectors@6.2.0(@tanstack/react-query@5.100.9(react@19.1.0))(@types/react@19.2.14)(@wagmi/core@2.22.1(@tanstack/query-core@5.100.9)(@types/react@19.2.14)(react@19.1.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.48.11(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76)))(bufferutil@4.1.0)(react@19.1.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.1.0))(utf-8-validate@5.0.10)(viem@2.48.11(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.19.5(@tanstack/query-core@5.100.9)(@tanstack/react-query@5.100.9(react@19.1.0))(@types/react@19.2.14)(bufferutil@4.1.0)(react@19.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(viem@2.48.11(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@base-org/account': 2.4.0(@types/react@19.2.14)(bufferutil@4.1.0)(react@19.1.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.1.0))(utf-8-validate@5.0.10)(zod@3.25.76)
@@ -12303,6 +12331,11 @@ snapshots:
   onetime@5.1.2:
     dependencies:
       mimic-fn: 2.1.0
+
+  openai@6.37.0(ws@7.5.10(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@4.4.3):
+    optionalDependencies:
+      ws: 7.5.10(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      zod: 4.4.3
 
   openapi-fetch@0.13.8:
     dependencies:

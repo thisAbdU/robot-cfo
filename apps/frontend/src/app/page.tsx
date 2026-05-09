@@ -1,5 +1,6 @@
 import { Header } from "@/components/Header";
 import { FeatureCard } from "@/components/FeatureCard";
+import { TreasuryBrainPanel } from "@/components/TreasuryBrainPanel";
 
 export default function Home() {
   return (
@@ -75,6 +76,8 @@ export default function Home() {
             </p>
           </FeatureCard>
         </section>
+
+        <TreasuryBrainPanel />
 
         <section className="mt-16 rounded-2xl border border-[var(--terminal-border)] bg-[color-mix(in_oklab,var(--terminal-panel)_100%,black)] p-8">
           <h2 className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-[var(--terminal-accent)]">

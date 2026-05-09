@@ -48,6 +48,8 @@ The Next.js app lists `@robot-cfo/shared` in `transpilePackages` so workspace so
 
 Copy `.env.example` files in each app when you add them; root `.gitignore` excludes `.env` and `.env.*`.
 
-**Backend (`apps/backend/.env`):** `DATABASE_URL` (Postgres), optional `LIFI_INTEGRATOR` / `LIFI_API_KEY`, and `SNAPSHOT_SPACE_IDS` (comma-separated Snapshot spaces). Run migrations from `apps/backend` with `pnpm prisma:migrate`.
+**Backend (`apps/backend/.env`):** `DATABASE_URL` (Postgres), optional `LIFI_INTEGRATOR` / `LIFI_API_KEY`, `SNAPSHOT_SPACE_IDS` (comma-separated Snapshot spaces), `GEMINI_API_KEY` / `GEMINI_MODEL` for the CFO brain. Optional `CORS_ORIGINS` (comma-separated browser origins; defaults include `http://localhost:3000` and `:3001`). Run migrations from `apps/backend` with `pnpm prisma:migrate`.
 
-Useful HTTP routes after `pnpm dev:backend`: `POST /blockchain/sync-balances`, `POST /governance/sync-active`, `GET /governance/proposals`, `GET /governance/:spaceId` (sync + list for one DAO, e.g. `balancer.eth`).
+**Frontend (`apps/frontend/.env.local`):** `NEXT_PUBLIC_API_URL` pointing at the Nest API (defaults to `http://localhost:3000`). If both Next and Nest use port 3000, run one app on another port (e.g. `PORT=3001 pnpm dev:backend` or `pnpm dev -- -p 3001` in `apps/frontend`) and set `NEXT_PUBLIC_API_URL` accordingly.
+
+Useful HTTP routes after `pnpm dev:backend`: `GET /treasuries`, `POST /ai/analyze/:treasuryId`, `POST /blockchain/sync-balances`, `POST /governance/sync-active`, `GET /governance/proposals`, `GET /governance/:spaceId` (sync + list for one DAO, e.g. `balancer.eth`).

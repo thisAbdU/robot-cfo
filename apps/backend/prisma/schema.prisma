@@ -7,6 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AIDecisionType {
+  REBALANCE
+  YIELD
+  GOVERNANCE
+}
+
+enum AIDecisionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Treasury {
   id        String   @id @default(cuid())
   name      String
@@ -16,7 +28,23 @@ model Treasury {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  balances TokenBalance[]
+  balances    TokenBalance[]
+  aiDecisions AIDecision[]
+}
+
+model AIDecision {
+  id          String           @id @default(cuid())
+  treasuryId  String
+  treasury    Treasury         @relation(fields: [treasuryId], references: [id], onDelete: Cascade)
+  type        AIDecisionType
+  reasoning   String           @db.Text
+  data        Json
+  status      AIDecisionStatus @default(PENDING)
+  txHash      String?
+  createdAt   DateTime         @default(now())
+
+  @@index([treasuryId])
+  @@index([status])
 }
 
 model TokenBalance {
