@@ -2,13 +2,22 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
+import type { Route, RoutesRequest } from '@lifi/types';
 import {
   ChainId,
   createConfig,
   getChains,
+  getRoutes,
+  getStepTransaction,
+  getStatus,
   getWalletBalances,
   type WalletTokenExtended,
 } from '@lifi/sdk';
+import {
+  getPrimaryExecutionStep,
+  inferBridgeToolForStatus,
+  serializeForJson,
+} from './lifi-route.helpers';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Ethereum mainnet, Base, and Solana (LI.FI internal chain id — see `ChainId.SOL`). */
@@ -174,5 +183,122 @@ export class BlockchainService implements OnModuleInit {
     const divisor = new Prisma.Decimal(10).pow(decimals);
     const human = divisor.isZero() ? new Prisma.Decimal(0) : amt.div(divisor);
     return human.mul(new Prisma.Decimal(priceUSD));
+  }
+
+  /**
+   * Best LI.FI route for a treasury move (swap + bridge steps returned on `Route.steps`).
+   */
+  async getExecutionRoute(params: RoutesRequest): Promise<Route> {
+    const res = await getRoutes(params);
+    const route = res.routes[0];
+    if (!route) {
+      throw new Error(
+        'No executable route returned by LI.FI for the given parameters',
+      );
+    }
+    return route;
+  }
+
+  /**
+   * Simulation summary derived from LI.FI route estimates (amounts, slippage bounds, gas costs).
+   * Uses route + step `estimate` objects — no on-chain `eth_call` simulation here.
+   */
+  simulateRoute(route: Route) {
+    const primary = getPrimaryExecutionStep(route);
+    const est = primary.estimate;
+    const slip =
+      primary.action.slippage ??
+      (route.toAmount !== '0' && route.toAmountMin !== '0'
+        ? 1 - Number(route.toAmountMin) / Number(route.toAmount)
+        : 0);
+
+    let gasUsd = route.gasCostUSD ?? '0';
+    if (
+      (!route.gasCostUSD || route.gasCostUSD === '0') &&
+      est?.gasCosts?.length
+    ) {
+      const sum = est.gasCosts.reduce(
+        (acc, g) => acc + Number(g.amountUSD ?? '0'),
+        0,
+      );
+      gasUsd = String(sum);
+    }
+
+    const leafSteps = route.steps.flatMap((s) =>
+      s.includedSteps?.length ? s.includedSteps : [],
+    );
+
+    const steps = serializeForJson(
+      leafSteps.map((st) => ({
+        id: st.id,
+        type: st.type,
+        tool: st.tool,
+        fromChainId: st.action.fromChainId,
+        toChainId: st.action.toChainId,
+        fromToken: st.action.fromToken.symbol,
+        toToken: st.action.toToken.symbol,
+        estimate: st.estimate
+          ? {
+              fromAmount: st.estimate.fromAmount,
+              toAmount: st.estimate.toAmount,
+              toAmountMin: st.estimate.toAmountMin,
+              executionDuration: st.estimate.executionDuration,
+              gasCosts: st.estimate.gasCosts?.map((g) => ({
+                type: g.type,
+                amountUSD: g.amountUSD,
+                token: g.token.symbol,
+              })),
+            }
+          : undefined,
+      })),
+    );
+
+    return serializeForJson({
+      before: {
+        chainId: route.fromChainId,
+        tokenAddress: route.fromToken.address,
+        symbol: route.fromToken.symbol,
+        amountRaw: route.fromAmount,
+        amountUsd: route.fromAmountUSD,
+      },
+      after: {
+        chainId: route.toChainId,
+        tokenAddress: route.toToken.address,
+        symbol: route.toToken.symbol,
+        amountExpectedRaw: route.toAmount,
+        amountMinRaw: route.toAmountMin,
+        amountUsd: route.toAmountUSD,
+      },
+      slippage: Number.isFinite(slip) ? slip : 0,
+      gasFeesUsd: gasUsd,
+      routeGasCostUsd: route.gasCostUSD ?? null,
+      bridgeTool: inferBridgeToolForStatus(route),
+      steps,
+    });
+  }
+
+  /** Hydrates the first execution step with calldata via LI.FI `getStepTransaction`. */
+  async populateFirstStepTransaction(route: Route): Promise<Route> {
+    const step = route.steps[0];
+    if (!step) {
+      throw new Error('Route has no steps');
+    }
+    const populated = await getStepTransaction(
+      step as Parameters<typeof getStepTransaction>[0],
+    );
+    return {
+      ...route,
+      steps: [populated],
+    };
+  }
+
+  async checkRouteBridgeStatus(params: { txHash: string; route: Route }) {
+    const bridge = inferBridgeToolForStatus(params.route);
+    return getStatus({
+      txHash: params.txHash,
+      fromChain: params.route.fromChainId,
+      toChain: params.route.toChainId,
+      bridge,
+    });
   }
 }

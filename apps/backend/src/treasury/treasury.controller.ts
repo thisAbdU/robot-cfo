@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { TreasuryService } from './treasury.service';
 
 @Controller('treasuries')
@@ -8,5 +8,11 @@ export class TreasuryController {
   @Get()
   async list() {
     return this.treasury.listTreasuries();
+  }
+
+  /** Must stay after `GET /` — lists AI + execution metadata for a treasury. */
+  @Get(':treasuryId/ai-decisions')
+  async listAiDecisions(@Param('treasuryId') treasuryId: string) {
+    return this.treasury.listAiDecisionsForTreasury(treasuryId);
   }
 }

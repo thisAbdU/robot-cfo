@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { getPublicApiBaseUrl } from "@/lib/api";
 
@@ -72,6 +72,7 @@ async function postAnalyze(treasuryId: string): Promise<AnalyzeResponse> {
 }
 
 export function TreasuryBrainPanel() {
+  const queryClient = useQueryClient();
   const baseUrl = useMemo(() => getPublicApiBaseUrl(), []);
   const [treasuryId, setTreasuryId] = useState<string>("");
 
@@ -82,6 +83,13 @@ export function TreasuryBrainPanel() {
 
   const analyzeMutation = useMutation({
     mutationFn: postAnalyze,
+    onSuccess: (data, treasuryIdUsed) => {
+      const tid =
+        data.decision?.treasuryId ?? treasuryIdUsed;
+      void queryClient.invalidateQueries({
+        queryKey: ["ai-decisions", tid],
+      });
+    },
   });
 
   const rows = treasuriesQuery.data ?? [];

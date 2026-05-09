@@ -19,6 +19,14 @@ enum AIDecisionStatus {
   REJECTED
 }
 
+enum DecisionExecutionStatus {
+  PENDING
+  SIGNING
+  BRIDGING
+  COMPLETED
+  FAILED
+}
+
 model Treasury {
   id        String   @id @default(cuid())
   name      String
@@ -33,18 +41,23 @@ model Treasury {
 }
 
 model AIDecision {
-  id          String           @id @default(cuid())
-  treasuryId  String
-  treasury    Treasury         @relation(fields: [treasuryId], references: [id], onDelete: Cascade)
-  type        AIDecisionType
-  reasoning   String           @db.Text
-  data        Json
-  status      AIDecisionStatus @default(PENDING)
-  txHash      String?
-  createdAt   DateTime         @default(now())
+  id                String                   @id @default(cuid())
+  treasuryId        String
+  treasury          Treasury                 @relation(fields: [treasuryId], references: [id], onDelete: Cascade)
+  type              AIDecisionType
+  reasoning         String                   @db.Text
+  data              Json
+  status            AIDecisionStatus         @default(PENDING)
+  txHash            String?
+  lifiRouteId       String?
+  safeTxHash        String?
+  executionStatus   DecisionExecutionStatus?
+  createdAt         DateTime                 @default(now())
 
   @@index([treasuryId])
   @@index([status])
+  @@index([executionStatus])
+  @@index([lifiRouteId])
 }
 
 model TokenBalance {
